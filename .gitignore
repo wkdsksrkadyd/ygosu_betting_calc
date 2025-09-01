@@ -8,9 +8,7 @@ __pycache__/
 venv/
 
 # Config / secrets
-config.py
 .env
-*.env
 
 # OS / Editor
 .DS_Store
