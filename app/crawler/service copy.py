@@ -38,27 +38,26 @@ def parse_post(post_id, slug=SLUG):
     res.raise_for_status()
     soup = BeautifulSoup(res.text, "html.parser")
 
+    deadline_date = None
+    deadline_tag = soup.select_one("div.ub_bet_start")
+    if deadline_tag:
+        txt = deadline_tag.get_text(" ", strip=True)
+        m = re.search(r"(\d{4})년 (\d{2})월 (\d{2})일.*?(\d{2}:\d{2}:\d{2})", txt)
+        if m:
+            deadline_date = datetime.strptime(
+                f"{m.group(1)}-{m.group(2)}-{m.group(3)} {m.group(4)}",
+                "%Y-%m-%d %H:%M:%S"
+            )
+
     records = []
     for bet_side, item in enumerate(soup.select("div.wato_view div.item")):
         for row in item.select("div.apply_list tbody tr"):
             cols = row.find_all("td")
-            if len(cols) < 4:
+            if len(cols) < 3:
                 continue
-
             nickname = cols[0].get_text(strip=True)
             bet = int(cols[1].get_text(strip=True).replace(",", ""))
             payout = int(cols[2].get_text(strip=True).replace(",", ""))
-
-            # ✅ 참여 시각 파싱
-            participated_at = None
-            time_txt = cols[3].get_text(strip=True)
-            m = re.match(r"(\d{2})일 (\d{2}):(\d{2}):(\d{2})", time_txt)
-            if m:
-                day = int(m.group(1))
-                hour, minute, second = map(int, m.groups()[1:])
-                today = datetime.now()
-                participated_at = datetime(today.year, today.month, day, hour, minute, second)
-
             records.append({
                 "post_id": int(post_id),
                 "slug": slug,
@@ -66,7 +65,7 @@ def parse_post(post_id, slug=SLUG):
                 "nickname": nickname,
                 "bet_amount": bet,
                 "payout_amount": payout,
-                "participated_at": participated_at
+                "deadline_date": deadline_date
             })
     return records
 
@@ -86,11 +85,11 @@ def get_or_create_board(cur, slug):
 def update_daily_stats(cur):
     cur.execute("""
         INSERT INTO daily_betting_stats (stat_date, user_id, board_id, total_bets, total_amount, total_profit, wins, created_at)
-        SELECT DATE(participated_at), user_id, board_id,
+        SELECT DATE(deadline_date), user_id, board_id,
                COUNT(*), SUM(bet_amount), SUM(profit),
                SUM(CASE WHEN profit > 0 THEN 1 ELSE 0 END), NOW()
         FROM betting_stats
-        GROUP BY DATE(participated_at), user_id, board_id
+        GROUP BY DATE(deadline_date), user_id, board_id
         ON CONFLICT (stat_date, user_id, board_id)
         DO UPDATE SET
             total_bets   = EXCLUDED.total_bets,
@@ -104,11 +103,11 @@ def update_daily_stats(cur):
 def update_monthly_stats(cur):
     cur.execute("""
         INSERT INTO monthly_betting_stats (stat_month, user_id, board_id, total_bets, total_amount, total_profit, wins, created_at)
-        SELECT DATE_TRUNC('month', participated_at)::DATE, user_id, board_id,
+        SELECT DATE_TRUNC('month', deadline_date)::DATE, user_id, board_id,
                COUNT(*), SUM(bet_amount), SUM(profit),
                SUM(CASE WHEN profit > 0 THEN 1 ELSE 0 END), NOW()
         FROM betting_stats
-        GROUP BY DATE_TRUNC('month', participated_at), user_id, board_id
+        GROUP BY DATE_TRUNC('month', deadline_date), user_id, board_id
         ON CONFLICT (stat_month, user_id, board_id)
         DO UPDATE SET
             total_bets   = EXCLUDED.total_bets,
@@ -127,6 +126,7 @@ def insert_records(posts_records):
     user_cache = {}
     board_cache = {}
 
+    # DB에서 기존 users, boards 모두 불러와 캐싱
     cur.execute("SELECT id, nickname FROM users;")
     for uid, nickname in cur.fetchall():
         user_cache[nickname] = uid
@@ -136,9 +136,13 @@ def insert_records(posts_records):
         board_cache[slug] = bid
 
     for post_id, records in posts_records.items():
+        # ✅ 게시물 단위로 이미 데이터가 있는지 먼저 확인
         cur.execute("SELECT 1 FROM betting_stats WHERE post_id = %s LIMIT 1;", (post_id,))
         if cur.fetchone():
+            # print(f"[SKIP POST] post_id={post_id} 이미 처리됨, 다음 게시물로 이동")
             continue
+
+        # print(f"[PROCESS POST] post_id={post_id}, 총 {len(records)}개 기록 처리")
 
         for r in records:
             nickname = r["nickname"]
@@ -162,14 +166,21 @@ def insert_records(posts_records):
 
             cur.execute("""
                 INSERT INTO betting_stats 
-                (post_id, participated_at, user_id, board_id, bet_side, bet_amount, payout_amount, created_at)
+                (post_id, deadline_date, user_id, board_id, bet_side, bet_amount, payout_amount, created_at)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
                 ON CONFLICT (user_id, post_id, bet_side) DO NOTHING;
             """, (
-                r["post_id"], r["participated_at"], user_id, board_id,
+                r["post_id"], r["deadline_date"], user_id, board_id,
                 r["bet_side"], r["bet_amount"], r["payout_amount"]
             ))
+        
+        # if cur.rowcount == 0:
+            # print(f"[SKIP] 이미 존재 → post_id={r['post_id']}, user={nickname}, side={r['bet_side']}")
+        # else:
+            # print(f"[OK] 저장됨 → post_id={r['post_id']}, user={nickname}, side={r['bet_side']}")
 
+
+    # ✅ 집계 갱신
     update_daily_stats(cur)
     update_monthly_stats(cur)
 

@@ -1,9 +1,8 @@
-from flask import Blueprint, render_template, jsonify, request, current_app
+from flask import Blueprint, render_template, jsonify, request, current_app, Response
 from app.database import get_connection
 import subprocess
 import threading
 import os
-from datetime import date, timedelta
 
 SECRET_KEY = os.getenv("CRAWLER_SECRET_KEY", "default_secret")
 
@@ -42,10 +41,9 @@ def run_crawler():
             print("[ERROR] Crawler 실패:", e.stderr)
 
     threading.Thread(target=background_job, daemon=True).start()
+
     return jsonify({"status": "started"}), 202
 
-
-# ✅ 일간 통계 API
 @bp.route("/api/daily_stats", methods=["GET"])
 def daily_stats():
     nickname = request.args.get("nickname")
@@ -54,19 +52,13 @@ def daily_stats():
 
     if not nickname:
         return jsonify({"error": "nickname required"}), 400
-
-    # 기본값: 최근 30일
     if not start_date or not end_date:
-        end_date = date.today()
-        start_date = end_date - timedelta(days=30)
-    else:
-        # 문자열을 date로 변환
-        start_date = date.fromisoformat(start_date)
-        end_date = date.fromisoformat(end_date)
+        return jsonify({"error": "startDate and endDate required"}), 400
 
     conn = get_connection()
     cur = conn.cursor()
 
+    # 정확히 일치하는 닉네임만 검색
     cur.execute("SELECT id, nickname FROM users WHERE nickname = %s", (nickname,))
     rows = cur.fetchall()
 
@@ -89,6 +81,7 @@ def daily_stats():
         results[nick] = []
         for r in stats:
             stat_date, total_bets, total_amount, total_profit, wins = r
+            # ✅ 승률 계산 (0으로 나누는 경우 방지)
             win_rate = round((wins / total_bets * 100), 2) if total_bets > 0 else 0.0
             results[nick].append({
                 "stat_date": str(stat_date),
@@ -103,8 +96,6 @@ def daily_stats():
     conn.close()
     return jsonify(results)
 
-
-# ✅ 월간 통계 API
 @bp.route("/api/monthly_stats", methods=["GET"])
 def monthly_stats():
     nickname = request.args.get("nickname")
@@ -135,10 +126,14 @@ def monthly_stats():
 
         # ✅ 기간 필터링
         if start_month and end_month:
-            query += " AND stat_month BETWEEN %s AND (%s::date + interval '1 month - 1 day')"
-            params.extend([start_month + "-01", end_month + "-01"])
-        else:
-            query += " ORDER BY stat_month DESC LIMIT 12"
+            query += " AND stat_month BETWEEN %s AND %s"
+            params.extend([start_month + "-01", end_month + "-31"])  
+            # stat_month가 DATE 형식이라고 가정, 월 첫째날~마지막날로 확장
+        query += " ORDER BY stat_month DESC"
+
+        # 기본적으로 최근 12개월 제한 (필터 없을 때만)
+        if not (start_month and end_month):
+            query += " LIMIT 12"
 
         cur.execute(query, tuple(params))
         stats = cur.fetchall()

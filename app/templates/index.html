@@ -4,8 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="light dark">
-    <title>Conditional Styling • Pico CSS</title>
-    <meta name="description" content="A minimal example with the conditional version.">
+    <title>개인 배팅 검색 • 세트카 승률</title>
+    <meta name="description" content="세트카 개인 배팅 검색 페이지">
 
     <!-- Pico.css -->
     <link
@@ -19,65 +19,67 @@
     <!-- Header -->
     <header class="container">
       <div class="pico">
-        <nav>
-          <ul>
-            <li><a href="#" data-theme-switcher="light">Light</a></li>
-            <li><a href="#" data-theme-switcher="dark">Dark</a></li>
-          </ul>
-        </nav>
+
+      <nav>
+        <ul>
+          <li><a href="{{ url_for('routes.rankings') }}">월간/일간 랭킹</a></li>
+          <li><a href="{{ url_for('routes.index') }}" aria-current="page">개인배팅 검색</a></li>
+        </ul>
+        <ul>
+          <li><a href="#" data-theme-switcher="light">Light</a></li>
+          <li><a href="#" data-theme-switcher="dark">Dark</a></li>
+        </ul>
+      </nav>
       </div>
-      <hgroup>
-        <h1>랭킹</h1>
-        <p>Conditional Styling</p>
-      </hgroup>
-      
     </header>
+      
+
     <!-- ./ Header -->
 
     <!-- Main -->
     <main class="container">
-      <!-- Styled -->
       <section class="pico">
-        <h2>Styled section</h2>
-        <form>
-          <input
-            type="text"
-            name="firstname"
-            placeholder="First name"
-            aria-label="First name"
-            required
-          >
-          <button type="submit">Subscribe</button>
-        </form>
-      </section>
-      <!-- ./ Styled -->
+        <h1>세트카 개인 승률 검색</h1>
+        <p>🔊 당일 승리는 오전 04:00 업데이트 / 양방 시 1승 1패 기록</p>
 
-      <!-- Unstyled -->
-      <section>
-        <h2>Unstyled section</h2>
-        <form>
+        <form id="searchForm">
+          <div class="grid">
+            <select name="select" aria-label="검색 유형" required>
+              <option selected>월간 배팅</option>
+              <option>일간 배팅</option>
+            </select>
+          </div>
+
           <input
             type="text"
-            name="firstname"
-            placeholder="First name"
-            aria-label="First name"
+            id="nickname"
+            name="nickname"
+            placeholder="닉네임이 공백까지 정확해야함"
+            aria-label="닉네임"
             required
           >
-          <input
-            type="email"
-            name="email"
-            placeholder="Email address"
-            aria-label="Email address"
-            autocomplete="email"
-            required
-          >
-          <button type="submit">Subscribe</button>
+
+          <fieldset>
+            <div class="grid">
+              <label for="startDate">
+                시작 날짜
+                <input type="month" id="startDate" name="startDate">
+              </label>
+              <label for="endDate">
+                종료 날짜
+                <input type="month" id="endDate" name="endDate">
+              </label>
+            </div>
+          </fieldset>
+
+          <button type="submit" id="searchBtn" class="primary">검색</button>
         </form>
+
+        <div id="results"></div>
       </section>
-      <!-- ./ Unstyled -->
     </main>
 
-    <!-- Minimal theme switcher -->
+    <!-- Scripts -->
     <script src="{{ url_for('static', filename='js/minimal-theme-switcher.js') }}"></script>
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
   </body>
