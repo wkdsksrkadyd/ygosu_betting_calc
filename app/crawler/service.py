@@ -168,6 +168,7 @@ def insert_records(posts_records):
                 INSERT INTO betting_stats 
                 (post_id, deadline_date, user_id, board_id, bet_side, bet_amount, payout_amount, created_at)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
+                ON CONFLICT (user_id, post_id, bet_side) DO NOTHING;
             """, (
                 r["post_id"], r["deadline_date"], user_id, board_id,
                 r["bet_side"], r["bet_amount"], r["payout_amount"]
