@@ -3,8 +3,8 @@ name: Run crawler daily
 on:
   schedule:
     # 한국시간(KST) 14:45 = UTC 05:45
-    - cron: "45 5 * * *"
-  workflow_dispatch:
+    - cron: "50 5 * * *"
+  # workflow_dispatch:
 
 jobs:
   trigger-crawler:
