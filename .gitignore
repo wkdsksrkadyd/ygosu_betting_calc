@@ -21,3 +21,9 @@ venv/
 # Build
 dist/
 build/
+
+# 도커
+docker/
+
+# sql
+sql/

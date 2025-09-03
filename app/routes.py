@@ -5,3 +5,7 @@ bp = Blueprint("routes", __name__)
 @bp.route("/")
 def index():
     return render_template("index.html")
+
+@bp.route("/healthz")
+def healthz():
+    return jsonify(status="ok"), 200
