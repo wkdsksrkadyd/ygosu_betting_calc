@@ -1,0 +1,25 @@
+name: Run crawler daily
+
+on:
+  schedule:
+    # 한국시간(KST) 14:45 = UTC 05:45
+    - cron: "45 5 * * *"
+  workflow_dispatch:
+
+jobs:
+  trigger-crawler:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wake up Render app (health check)
+        run: |
+          curl -s -o /dev/null -w "%{http_code}" https://YOUR_RENDER_URL/healthz
+        continue-on-error: true
+
+      - name: Wait 60 seconds
+        run: sleep 60
+
+      - name: Call Render crawler endpoint
+        run: |
+          curl -X POST \
+            -H "X-API-KEY: ${{ secrets.CRAWLER_SECRET_KEY }}" \
+            https://YOUR_RENDER_URL/run-crawler
