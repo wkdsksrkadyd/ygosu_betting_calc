@@ -1,6 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
-import re, time
+import re
 from datetime import datetime
 from app.database import get_connection
 import os
@@ -145,6 +145,7 @@ def insert_records(records):
             cur.execute("SELECT id FROM users WHERE nickname = %s", (nickname,))
             user_id = cur.fetchone()[0]
             user_cache[nickname] = user_id
+            # print(f"[USER] 신규 추가: {nickname} (id={user_id})")
         else:
             user_id = user_cache[nickname]
 
@@ -154,10 +155,12 @@ def insert_records(records):
             cur.execute("SELECT id FROM boards WHERE slug = %s", (slug,))
             board_id = cur.fetchone()[0]
             board_cache[slug] = board_id
+            # print(f"[BOARD] 신규 추가: {slug} (id={board_id})")
         else:
             board_id = board_cache[slug]
 
         # ✅ betting_stats 저장
+        # print(f"[INSERT TRY] post_id={r['post_id']}, user={nickname}, side={r['bet_side']}, bet={r['bet_amount']}, payout={r['payout_amount']}")
         cur.execute("""
             INSERT INTO betting_stats 
             (post_id, deadline_date, user_id, board_id, bet_side, bet_amount, payout_amount, created_at)
@@ -167,6 +170,12 @@ def insert_records(records):
             r["post_id"], r["deadline_date"], user_id, board_id,
             r["bet_side"], r["bet_amount"], r["payout_amount"]
         ))
+        
+        # if cur.rowcount == 0:
+            # print(f"[SKIP] 이미 존재 → post_id={r['post_id']}, user={nickname}, side={r['bet_side']}")
+        # else:
+            # print(f"[OK] 저장됨 → post_id={r['post_id']}, user={nickname}, side={r['bet_side']}")
+
 
     # ✅ 집계 갱신
     update_daily_stats(cur)
