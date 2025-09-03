@@ -3,7 +3,7 @@ name: Keep Render App Awake
 on:
   schedule:
     # 10분마다 실행 (Render 무료 플랜은 15분 후 sleep)
-    - cron: "*/10 * * * *"
+    - cron: "*/1 * * * *"
   workflow_dispatch:  # 수동 실행도 가능
 
 jobs:
