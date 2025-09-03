@@ -4,7 +4,7 @@ on:
   schedule:
     # 10분마다 실행 (Render 무료 플랜은 15분 후 sleep)
     - cron: "*/5 * * * *"
-  workflow_dispatch:  # 수동 실행도 가능
+  # workflow_dispatch:  # 수동 실행도 가능
 
 jobs:
   ping:
