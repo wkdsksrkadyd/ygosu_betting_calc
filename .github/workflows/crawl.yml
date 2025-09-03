@@ -20,6 +20,6 @@ jobs:
 
       - name: Call Render crawler endpoint
         run: |
-          curl --max-time 3600 -X POST \
+          curl -X POST \
             -H "X-API-KEY: ${{ secrets.CRAWLER_SECRET_KEY }}" \
             https://ygosu-betting-calc.onrender.com/run-crawler
