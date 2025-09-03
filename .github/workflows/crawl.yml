@@ -12,7 +12,7 @@ jobs:
     steps:
       - name: Wake up Render app (health check)
         run: |
-          curl -s -o /dev/null -w "%{http_code}" https://ygosu-betting-calc.onrender/healthz
+          curl -s -o /dev/null -w "%{http_code}" https://ygosu-betting-calc.onrender.com/healthz
         continue-on-error: true
 
       - name: Wait 60 seconds

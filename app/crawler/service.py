@@ -118,7 +118,7 @@ def update_monthly_stats(cur):
     """)
 
 
-def insert_records(records):
+def insert_records(posts_records):
     conn = get_connection()
     cur = conn.cursor()
 
@@ -135,41 +135,43 @@ def insert_records(records):
     for bid, slug in cur.fetchall():
         board_cache[slug] = bid
 
-    for r in records:
-        nickname = r["nickname"]
-        slug = r["slug"]
+    for post_id, records in posts_records.items():
+        # ✅ 게시물 단위로 이미 데이터가 있는지 먼저 확인
+        cur.execute("SELECT 1 FROM betting_stats WHERE post_id = %s LIMIT 1;", (post_id,))
+        if cur.fetchone():
+            # print(f"[SKIP POST] post_id={post_id} 이미 처리됨, 다음 게시물로 이동")
+            continue
 
-        # ✅ 유저 캐싱 (없으면 추가 후 캐시에 저장)
-        if nickname not in user_cache:
-            cur.execute("INSERT INTO users (nickname) VALUES (%s) ON CONFLICT (nickname) DO NOTHING;", (nickname,))
-            cur.execute("SELECT id FROM users WHERE nickname = %s", (nickname,))
-            user_id = cur.fetchone()[0]
-            user_cache[nickname] = user_id
-            # print(f"[USER] 신규 추가: {nickname} (id={user_id})")
-        else:
-            user_id = user_cache[nickname]
+        # print(f"[PROCESS POST] post_id={post_id}, 총 {len(records)}개 기록 처리")
 
-        # ✅ 보드 캐싱 (없으면 추가 후 캐시에 저장)
-        if slug not in board_cache:
-            cur.execute("INSERT INTO boards (slug, name) VALUES (%s, %s) ON CONFLICT (slug) DO NOTHING;", (slug, slug))
-            cur.execute("SELECT id FROM boards WHERE slug = %s", (slug,))
-            board_id = cur.fetchone()[0]
-            board_cache[slug] = board_id
-            # print(f"[BOARD] 신규 추가: {slug} (id={board_id})")
-        else:
-            board_id = board_cache[slug]
+        for r in records:
+            nickname = r["nickname"]
+            slug = r["slug"]
 
-        # ✅ betting_stats 저장
-        # print(f"[INSERT TRY] post_id={r['post_id']}, user={nickname}, side={r['bet_side']}, bet={r['bet_amount']}, payout={r['payout_amount']}")
-        cur.execute("""
-            INSERT INTO betting_stats 
-            (post_id, deadline_date, user_id, board_id, bet_side, bet_amount, payout_amount, created_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
-            ON CONFLICT (user_id, post_id, bet_side) DO NOTHING;
-        """, (
-            r["post_id"], r["deadline_date"], user_id, board_id,
-            r["bet_side"], r["bet_amount"], r["payout_amount"]
-        ))
+            if nickname not in user_cache:
+                cur.execute("INSERT INTO users (nickname) VALUES (%s) ON CONFLICT (nickname) DO NOTHING;", (nickname,))
+                cur.execute("SELECT id FROM users WHERE nickname = %s", (nickname,))
+                user_id = cur.fetchone()[0]
+                user_cache[nickname] = user_id
+            else:
+                user_id = user_cache[nickname]
+
+            if slug not in board_cache:
+                cur.execute("INSERT INTO boards (slug, name) VALUES (%s, %s) ON CONFLICT (slug) DO NOTHING;", (slug, slug))
+                cur.execute("SELECT id FROM boards WHERE slug = %s", (slug,))
+                board_id = cur.fetchone()[0]
+                board_cache[slug] = board_id
+            else:
+                board_id = board_cache[slug]
+
+            cur.execute("""
+                INSERT INTO betting_stats 
+                (post_id, deadline_date, user_id, board_id, bet_side, bet_amount, payout_amount, created_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
+            """, (
+                r["post_id"], r["deadline_date"], user_id, board_id,
+                r["bet_side"], r["bet_amount"], r["payout_amount"]
+            ))
         
         # if cur.rowcount == 0:
             # print(f"[SKIP] 이미 존재 → post_id={r['post_id']}, user={nickname}, side={r['bet_side']}")
