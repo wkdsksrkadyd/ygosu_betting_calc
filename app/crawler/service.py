@@ -240,8 +240,6 @@ def insert_records(posts_records):
     board_cache = {}
 
     for post_id, records in posts_records.items():
-        print(f"[디버그] {post_id} → records 수: {len(records)}")
-
         cur.execute("SELECT 1 FROM betting_stats WHERE post_id = %s LIMIT 1;", (post_id,))
         if cur.fetchone():
             continue

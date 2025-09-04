@@ -67,7 +67,7 @@ document.addEventListener("DOMContentLoaded", () => {
     resultsDiv.innerHTML = "<p>불러오는 중...</p>";
 
     const endpoint = type === "월간 배팅" ? "monthly_stats" : "daily_stats";
-    let url = `http://127.0.0.1:5000/api/${endpoint}?nickname=${encodeURIComponent(nickname)}`;
+    let url = `https://ygosu-betting-calc.onrender.com/api/${endpoint}?nickname=${encodeURIComponent(nickname)}`;
 
     if (type === "일간 배팅") {
       url += `&startDate=${startDateInput.value}&endDate=${endDateInput.value}`;

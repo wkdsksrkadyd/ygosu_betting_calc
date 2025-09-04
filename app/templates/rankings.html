@@ -41,10 +41,27 @@
         <h1>세트카 배팅액 월간/일간 랭킹</h1>
         <p>🔊 당일 기록 오전 05:00 업데이트 / 양방은 순수익만 적용 (총 배팅액, 승률 적용x)</p>
 
-        <div class="grid">
-          <button id="monthlyRankingBtn" class="primary">월간 랭킹 보기</button>
-          <button id="dailyRankingBtn" class="primary">일간 랭킹 보기</button>
-        </div>
+          <div class="grid">
+            <select name="select" aria-label="검색 유형" required>
+              <option selected>월간 배팅</option>
+              <option>일간 배팅</option>
+            </select>
+          </div>
+
+        <form id="searchForm">
+
+
+          <fieldset>
+            <div class="grid">
+              <label for="startDate">
+                랭킹 날짜
+                <input type="month" id="startDate" name="startDate">
+              </label>
+            </div>
+          </fieldset>
+
+          <button type="submit" id="searchBtn" class="primary">검색</button>
+        </form>
 
         <div id="rankingResults"></div>
       </section>
