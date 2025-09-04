@@ -29,7 +29,10 @@ document.addEventListener("DOMContentLoaded", () => {
       startDateInput.value = thisMonth;
     } else {
       startDateInput.type = "date";
-      startDateInput.value = formatDate(today);
+      // 오늘 날짜 - 1일
+      const yesterday = new Date(today);
+      yesterday.setDate(today.getDate() - 1);
+      startDateInput.value = formatDate(yesterday);
     }
   });
 
