@@ -67,7 +67,7 @@ document.addEventListener("DOMContentLoaded", () => {
     resultsDiv.innerHTML = "<p>불러오는 중...</p>";
 
     const endpoint = type === "월간 배팅" ? "monthly_stats" : "daily_stats";
-    let url = `https://ygosu-betting-calc.onrender.com/api/${endpoint}?nickname=${encodeURIComponent(nickname)}`;
+    let url = `http://127.0.0.1:5000/api/${endpoint}?nickname=${encodeURIComponent(nickname)}`;
 
     if (type === "일간 배팅") {
       url += `&startDate=${startDateInput.value}&endDate=${endDateInput.value}`;
@@ -103,7 +103,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (stats.length === 0) {
           html += `<p>기록 없음</p>`;
         } else {
-          html += "<table><thead><tr><th>날짜</th><th>총 배팅액</th><th>수익</th><th>베팅수</th><th>승리</th><th>승률(%)</th></tr></thead><tbody>";
+          html += "<table><thead><tr><th>날짜</th><th>총 배팅액</th><th>순수익</th><th>베팅수</th><th>승리</th><th>승률(%)</th></tr></thead><tbody>";
           stats.forEach((row) => {
             html += `<tr>
               <td>${row.stat_date || row.stat_month}</td>

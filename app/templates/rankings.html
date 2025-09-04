@@ -1,1 +1,57 @@
-<h1>개발중 ㅇㅇ ㄱㄷ</h1>
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <title>월간/일간 랭킹 • 세트카 승률</title>
+    <meta name="description" content="세트카 월간 및 일간 랭킹 페이지">
+
+    <!-- Pico.css -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@picocss/pico@2.1.1/css/pico.conditional.min.css"
+    >
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+  </head>
+
+  <body>
+    <!-- Header -->
+    <header class="container">
+    <div class="pico">
+
+      <nav>
+        <ul>
+          <li><a href="{{ url_for('routes.rankings') }}">월간/일간 랭킹</a></li>
+          <li><a href="{{ url_for('routes.index') }}" aria-current="page">개인배팅 검색</a></li>
+        </ul>
+        <ul>
+          <li><a href="#" data-theme-switcher="light">Light</a></li>
+          <li><a href="#" data-theme-switcher="dark">Dark</a></li>
+        </ul>
+      </nav>
+    </div>
+    </header>
+    <!-- ./ Header -->
+
+    <!-- Main -->
+    <main class="container">
+      <section class="pico">
+        <h1>세트카 배팅액 월간/일간 랭킹</h1>
+        <p>🔊 당일 기록 오전 05:00 업데이트 / 양방은 순수익만 적용 (총 배팅액, 승률 적용x)</p>
+
+        <div class="grid">
+          <button id="monthlyRankingBtn" class="primary">월간 랭킹 보기</button>
+          <button id="dailyRankingBtn" class="primary">일간 랭킹 보기</button>
+        </div>
+
+        <div id="rankingResults"></div>
+      </section>
+    </main>
+
+    <!-- Scripts -->
+    <script src="{{ url_for('static', filename='js/minimal-theme-switcher.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/ranking.js') }}"></script>
+  </body>
+</html>

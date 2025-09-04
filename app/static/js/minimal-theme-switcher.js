@@ -7,7 +7,7 @@
 
 const themeSwitcher = {
   // Config
-  _scheme: "auto",
+  _scheme: "dark",
   menuTarget: "details.dropdown",
   buttonsTarget: "a[data-theme-switcher]",
   buttonAttribute: "data-theme-switcher",

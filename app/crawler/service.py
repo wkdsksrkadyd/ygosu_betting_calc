@@ -57,6 +57,7 @@ def parse_post(post_id, slug=SLUG):
                 day = int(m.group(1))
                 hour, minute, second = map(int, m.groups()[1:])
                 today = datetime.now()
+                print(hour)
                 participated_at = datetime(today.year, today.month, day, hour, minute, second)
 
             records.append({
@@ -85,12 +86,33 @@ def get_or_create_board(cur, slug):
 
 def update_daily_stats(cur):
     cur.execute("""
+        WITH per_post AS (
+            SELECT
+                DATE(participated_at) AS d,
+                user_id,
+                board_id,
+                post_id,
+                SUM(profit) AS net_profit,            -- ✅ 순수익은 양방 합산
+                MAX(bet_amount) AS amount_one_side,   -- ✅ 총액은 대표 1건만
+                CASE WHEN SUM(profit) > 0 THEN 1 ELSE 0 END AS post_win
+            FROM betting_stats
+            GROUP BY DATE(participated_at), user_id, board_id, post_id
+        ),
+        per_day AS (
+            SELECT
+                d AS stat_date,
+                user_id,
+                board_id,
+                COUNT(*) AS total_bets,                 -- ✅ 한 게시물당 1건
+                SUM(amount_one_side) AS total_amount,   -- ✅ 금액은 대표값만
+                SUM(net_profit) AS total_profit,        -- ✅ 순수익은 합산
+                SUM(post_win) AS wins                   -- ✅ 승리도 게시물 단위
+            FROM per_post
+            GROUP BY d, user_id, board_id
+        )
         INSERT INTO daily_betting_stats (stat_date, user_id, board_id, total_bets, total_amount, total_profit, wins, created_at)
-        SELECT DATE(participated_at), user_id, board_id,
-               COUNT(*), SUM(bet_amount), SUM(profit),
-               SUM(CASE WHEN profit > 0 THEN 1 ELSE 0 END), NOW()
-        FROM betting_stats
-        GROUP BY DATE(participated_at), user_id, board_id
+        SELECT stat_date, user_id, board_id, total_bets, total_amount, total_profit, wins, NOW()
+        FROM per_day
         ON CONFLICT (stat_date, user_id, board_id)
         DO UPDATE SET
             total_bets   = EXCLUDED.total_bets,
@@ -103,12 +125,33 @@ def update_daily_stats(cur):
 
 def update_monthly_stats(cur):
     cur.execute("""
+        WITH per_post AS (
+            SELECT
+                DATE_TRUNC('month', participated_at)::DATE AS m,
+                user_id,
+                board_id,
+                post_id,
+                SUM(profit) AS net_profit,            -- ✅ 순수익 합산
+                MAX(bet_amount) AS amount_one_side,   -- ✅ 금액 대표값
+                CASE WHEN SUM(profit) > 0 THEN 1 ELSE 0 END AS post_win
+            FROM betting_stats
+            GROUP BY DATE_TRUNC('month', participated_at), user_id, board_id, post_id
+        ),
+        per_month AS (
+            SELECT
+                m AS stat_month,
+                user_id,
+                board_id,
+                COUNT(*) AS total_bets,                 -- 게시물 수
+                SUM(amount_one_side) AS total_amount,
+                SUM(net_profit) AS total_profit,
+                SUM(post_win) AS wins
+            FROM per_post
+            GROUP BY m, user_id, board_id
+        )
         INSERT INTO monthly_betting_stats (stat_month, user_id, board_id, total_bets, total_amount, total_profit, wins, created_at)
-        SELECT DATE_TRUNC('month', participated_at)::DATE, user_id, board_id,
-               COUNT(*), SUM(bet_amount), SUM(profit),
-               SUM(CASE WHEN profit > 0 THEN 1 ELSE 0 END), NOW()
-        FROM betting_stats
-        GROUP BY DATE_TRUNC('month', participated_at), user_id, board_id
+        SELECT stat_month, user_id, board_id, total_bets, total_amount, total_profit, wins, NOW()
+        FROM per_month
         ON CONFLICT (stat_month, user_id, board_id)
         DO UPDATE SET
             total_bets   = EXCLUDED.total_bets,

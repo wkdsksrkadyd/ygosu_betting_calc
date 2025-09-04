@@ -148,7 +148,7 @@ def monthly_stats():
             stat_month, total_bets, total_amount, total_profit, wins = r
             win_rate = round((wins / total_bets * 100), 2) if total_bets > 0 else 0.0
             results[nick].append({
-                "stat_month": str(stat_month),
+               "stat_month": stat_month.strftime("%Y-%m"),
                 "total_bets": total_bets,
                 "total_amount": total_amount,
                 "total_profit": total_profit,
