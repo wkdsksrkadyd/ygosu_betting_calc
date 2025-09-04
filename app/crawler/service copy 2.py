@@ -134,40 +134,30 @@ def get_or_create_board(cur, slug, cache=None):
 
 def update_daily_stats(cur):
     cur.execute("""
-        WITH per_post_all AS (  -- ✅ 전체 (양방 포함, profit 계산)
-            SELECT
-                DATE(deadline_date) AS d,
-                user_id,
-                board_id,
-                SUM(profit) AS net_profit
-            FROM betting_stats
-            GROUP BY DATE(deadline_date), user_id, board_id
-        ),
-        per_post_single AS (  -- ✅ 단방만 (bets, wins 계산)
+        WITH per_post AS (
             SELECT
                 DATE(deadline_date) AS d,
                 user_id,
                 board_id,
                 post_id,
+                SUM(profit) AS net_profit,
                 MAX(bet_amount) AS amount_one_side,
                 CASE WHEN SUM(profit) > 0 THEN 1 ELSE 0 END AS post_win
             FROM betting_stats
             GROUP BY DATE(deadline_date), user_id, board_id, post_id
-            HAVING COUNT(DISTINCT bet_side) = 1
+            HAVING COUNT(DISTINCT bet_side) = 1   -- ✅ 양방 제외 (단방만 집계)
         ),
         per_day AS (
             SELECT
-                a.d AS stat_date,
-                a.user_id,
-                a.board_id,
-                COUNT(s.post_id) AS total_bets,
-                COALESCE(SUM(s.amount_one_side), 0) AS total_amount,
-                a.net_profit AS total_profit,  -- ✅ 양방 포함 순수익
-                COALESCE(SUM(s.post_win), 0) AS wins
-            FROM per_post_all a
-            LEFT JOIN per_post_single s
-              ON a.d = s.d AND a.user_id = s.user_id AND a.board_id = s.board_id
-            GROUP BY a.d, a.user_id, a.board_id, a.net_profit
+                d AS stat_date,
+                user_id,
+                board_id,
+                COUNT(*) AS total_bets,                 -- ✅ 단방만 카운트
+                SUM(amount_one_side) AS total_amount,
+                SUM(net_profit) AS total_profit,
+                SUM(post_win) AS wins
+            FROM per_post
+            GROUP BY d, user_id, board_id
         )
         INSERT INTO daily_betting_stats (stat_date, user_id, board_id, total_bets, total_amount, total_profit, wins, created_at)
         SELECT stat_date, user_id, board_id, total_bets, total_amount, total_profit, wins, NOW()
@@ -184,40 +174,30 @@ def update_daily_stats(cur):
 
 def update_monthly_stats(cur):
     cur.execute("""
-        WITH per_post_all AS (  -- ✅ 전체 (양방 포함, profit 계산)
-            SELECT
-                DATE_TRUNC('month', deadline_date)::DATE AS m,
-                user_id,
-                board_id,
-                SUM(profit) AS net_profit
-            FROM betting_stats
-            GROUP BY DATE_TRUNC('month', deadline_date), user_id, board_id
-        ),
-        per_post_single AS (  -- ✅ 단방만 (bets, wins 계산)
+        WITH per_post AS (
             SELECT
                 DATE_TRUNC('month', deadline_date)::DATE AS m,
                 user_id,
                 board_id,
                 post_id,
+                SUM(profit) AS net_profit,
                 MAX(bet_amount) AS amount_one_side,
                 CASE WHEN SUM(profit) > 0 THEN 1 ELSE 0 END AS post_win
             FROM betting_stats
             GROUP BY DATE_TRUNC('month', deadline_date), user_id, board_id, post_id
-            HAVING COUNT(DISTINCT bet_side) = 1
+            HAVING COUNT(DISTINCT bet_side) = 1   -- ✅ 양방 제외
         ),
         per_month AS (
             SELECT
-                a.m AS stat_month,
-                a.user_id,
-                a.board_id,
-                COUNT(s.post_id) AS total_bets,
-                COALESCE(SUM(s.amount_one_side), 0) AS total_amount,
-                a.net_profit AS total_profit,  -- ✅ 양방 포함 순수익
-                COALESCE(SUM(s.post_win), 0) AS wins
-            FROM per_post_all a
-            LEFT JOIN per_post_single s
-              ON a.m = s.m AND a.user_id = s.user_id AND a.board_id = s.board_id
-            GROUP BY a.m, a.user_id, a.board_id, a.net_profit
+                m AS stat_month,
+                user_id,
+                board_id,
+                COUNT(*) AS total_bets,
+                SUM(amount_one_side) AS total_amount,
+                SUM(net_profit) AS total_profit,
+                SUM(post_win) AS wins
+            FROM per_post
+            GROUP BY m, user_id, board_id
         )
         INSERT INTO monthly_betting_stats (stat_month, user_id, board_id, total_bets, total_amount, total_profit, wins, created_at)
         SELECT stat_month, user_id, board_id, total_bets, total_amount, total_profit, wins, NOW()

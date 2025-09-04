@@ -4,7 +4,7 @@ from app.crawler.service import parse_list_page, parse_post, insert_records
 def main():
     start_time = time.time()  # ✅ 시작 시각 기록
 
-    for page in range(8, 9):  # 원하는 페이지 범위 조정 가능
+    for page in range(1, 9):  # 원하는 페이지 범위 조정 가능
         print(f"크롤링 중: 게시판 페이지 {page}")
         post_ids = parse_list_page(page)
 
@@ -16,6 +16,7 @@ def main():
             recs = parse_post(pid)
             if recs:
                 posts_records[pid] = recs  # dict 형태로 저장
+            print(f"[{pid}] 파싱된 레코드 수: {len(recs)}")
             time.sleep(0.2)  # 서버 부하 방지
 
         # ✅ 페이지 단위로 insert

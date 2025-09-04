@@ -142,13 +142,13 @@ def monthly_stats():
         if start_month and end_month:
             s = month_start(start_month)
             e = month_after(end_month)
-            time_filter_sql = "AND participated_at >= %s AND participated_at < %s"
+            time_filter_sql = "AND deadline_date >= %s AND deadline_date < %s"
             params.extend([s, e])
 
         cur.execute(f"""
             WITH per_post AS (
               SELECT
-                DATE_TRUNC('month', participated_at)::date AS m,
+                DATE_TRUNC('month', deadline_date)::date AS m,
                 post_id,
                 user_id,
                 board_id,
@@ -157,7 +157,7 @@ def monthly_stats():
               FROM betting_stats
               WHERE user_id = %s
               {time_filter_sql}
-              GROUP BY DATE_TRUNC('month', participated_at), post_id, user_id, board_id
+              GROUP BY DATE_TRUNC('month', deadline_date), post_id, user_id, board_id
             ),
             per_month AS (
               SELECT
