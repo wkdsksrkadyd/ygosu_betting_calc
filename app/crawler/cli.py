@@ -12,11 +12,11 @@ def main():
         posts_records = {}
 
         for pid in post_ids:
-            print(f" → 게시물 {pid} 크롤링 중...")
+            # print(f" → 게시물 {pid} 크롤링 중...")
             recs = parse_post(pid)
             if recs:
                 posts_records[pid] = recs  # dict 형태로 저장
-            print(f"[{pid}] 파싱된 레코드 수: {len(recs)}")
+            # print(f"[{pid}] 파싱된 레코드 수: {len(recs)}")
             time.sleep(0.2)  # 서버 부하 방지
 
         # ✅ 페이지 단위로 insert
