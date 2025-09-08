@@ -1,16 +1,11 @@
 import requests
 from bs4 import BeautifulSoup
 import re
-import calendar
-from datetime import datetime, timedelta
+from datetime import datetime
 from app.database import get_connection
 
-BASE_LIST_URL = "https://ygosu.com/board/{slug}/?s_wato=Y&page={page}"
-BASE_POST_URL = "https://ygosu.com/board/{slug}/{post_id}"
-
-
 def parse_list_page(page: int, slug: str):
-    url = BASE_LIST_URL.format(slug=slug, page=page)
+    url = f"https://ygosu.com/board/{slug}/?s_wato=Y&page={page}"
     res = requests.get(url, timeout=10)
     res.raise_for_status()
     soup = BeautifulSoup(res.text, "html.parser")
@@ -23,7 +18,6 @@ def parse_list_page(page: int, slug: str):
         cat = row.select_one("span.cat")
         if not a or not cat:
             continue
-        # 리스트에서는 '종료'만 수집
         if "종료" not in cat.get_text(strip=True):
             continue
         m = re.search(r"/(\d+)", a["href"])
@@ -32,101 +26,8 @@ def parse_list_page(page: int, slug: str):
     return posts
 
 
-def _parse_deadline_datetime(text: str):
-    """
-    마감 시각 블록에서 연-월-일-시-분-초 추출
-    예) '마감 시각: 2025년 09월 05일(금) 23:59:59 마감'
-    """
-    m = re.search(
-        r"마감\s*시각:\s*([\d]{4})년\s*([\d]{2})월\s*([\d]{2})일.*?([\d]{2}):([\d]{2}):([\d]{2})",
-        text,
-    )
-    if not m:
-        return None
-    y, mo, d, hh, mm, ss = map(int, m.groups())
-    try:
-        return datetime(y, mo, d, hh, mm, ss)
-    except ValueError:
-        return None
-
-
-def _compose_apply_dt(anchor_dt: datetime, apply_token: str):
-    """
-    참여 시각 문자열: 'DD일 HH:MM:SS' 를 풀 Timestamp로 변환.
-    - anchor_dt의 연도/월을 기준으로 조립
-    - apply_day > anchor_day 이면 전월로 보정 (월 경계 보정)
-    """
-    m = re.search(r"^\s*(\d{1,2})일\s+(\d{2}):(\d{2}):(\d{2})\s*$", apply_token)
-    if not m or not anchor_dt:
-        return None
-    a_day, a_h, a_m, a_s = map(int, m.groups())
-
-    y = anchor_dt.year
-    mo = anchor_dt.month
-    anchor_day = anchor_dt.day
-
-    # 월 경계 보정: 예) anchor가 09-01인데 '31일' 등장 → 08-31로 간주
-    if a_day > anchor_day:
-        mo -= 1
-        if mo == 0:
-            mo = 12
-            y -= 1
-
-    last_day = calendar.monthrange(y, mo)[1]
-    a_day = min(a_day, last_day)
-
-    try:
-        return datetime(y, mo, a_day, a_h, a_m, a_s)
-    except ValueError:
-        return None
-
-
-def _collect_apply_rows(soup: BeautifulSoup, anchor_dt: datetime):
-    """
-    화면의 참여 목록을 훑어 apply_dt를 계산해 리턴.
-    anchor_dt는 연/월 판단 기준(마감 시각 또는 현재 시각).
-    반환: (records, latest_apply_dt)
-    """
-    records = []
-    latest_apply_dt = None
-
-    # 사이드별 박스
-    for bet_side, item in enumerate(soup.select("div.wato_view div.item")):
-        # 참여 목록 테이블
-        for row in item.select("div.apply_list tbody tr"):
-            cols = row.find_all("td")
-            if len(cols) < 4:
-                # <th>참여자|참여미네랄|반환|참여 시각</th>
-                continue
-
-            nickname = cols[0].get_text(strip=True)
-            try:
-                bet = int(cols[1].get_text(strip=True).replace(",", ""))
-                payout = int(cols[2].get_text(strip=True).replace(",", ""))
-            except ValueError:
-                # 숫자 파싱 실패 시 스킵
-                continue
-
-            apply_token = cols[3].get_text(strip=True)  # 예: '05일 20:18:06'
-            apply_dt = _compose_apply_dt(anchor_dt, apply_token)
-            if not apply_dt:
-                continue
-
-            records.append({
-                "bet_side": bet_side,
-                "nickname": nickname,
-                "bet_amount": bet,
-                "payout_amount": payout,
-                "apply_dt": apply_dt,
-            })
-            if (latest_apply_dt is None) or (apply_dt > latest_apply_dt):
-                latest_apply_dt = apply_dt
-
-    return records, latest_apply_dt
-
-
 def parse_post(post_id: str, slug: str):
-    url = BASE_POST_URL.format(slug=slug, post_id=post_id)
+    url = f"https://ygosu.com/board/{slug}/{post_id}"
     try:
         res = requests.get(url, timeout=10)
         res.raise_for_status()
@@ -136,64 +37,64 @@ def parse_post(post_id: str, slug: str):
 
     soup = BeautifulSoup(res.text, "html.parser")
 
-    # 마감 정보 블록(연/월/일 추출, 종료 여부 확인)
+    # ✅ 마감 시각 및 종료 상태 체크
     bet_info_div = soup.select_one("div.ub_bet_start")
     if not bet_info_div:
         print(f"[스킵] 마감 정보 없음 → slug={slug}, post_id={post_id}")
         return []
 
-    # 종료 여부: 블록 내 텍스트에 '종료' 포함 시 종료로 판단
-    end_block_text = bet_info_div.get_text(" ", strip=True)
-    if "종료" not in end_block_text:
-        # 진행중이면 스킵(요구 사항에 변경 언급 없으므로 기존 동작 유지)
+    if "종료됨" not in bet_info_div.get_text():
         print(f"[스킵] 진행 중인 베팅 → slug={slug}, post_id={post_id}")
         return []
 
-    # 마감 시각 파싱
-    deadline_dt = _parse_deadline_datetime(end_block_text)
-    if not deadline_dt:
-        print(f"[오류] 마감 시각 파싱 실패 → slug={slug}, post_id={post_id}")
+    # ✅ 마감 시각 추출
+    participated_at = None
+    match = re.search(
+        r"마감 시각:\s*([\d]{4})년\s*([\d]{2})월\s*([\d]{2})일.*?([\d]{2}):([\d]{2}):([\d]{2})",
+        bet_info_div.get_text()
+    )
+    if match:
+        year, month, day, hour, minute, second = map(int, match.groups())
+        try:
+            participated_at = datetime(year, month, day, hour, minute, second)
+        except ValueError as e:
+            print(f"[오류] 마감 시각 파싱 실패 → slug={slug}, post_id={post_id}, error={e}")
+            return []
+    else:
+        print(f"[오류] 마감 시각 형식 불일치 → slug={slug}, post_id={post_id}")
         return []
 
-    now = datetime.now()
-    tomorrow = (now + timedelta(days=1))
+    # ✅ 참여자 정보 파싱
+    records = []
+    for bet_side, item in enumerate(soup.select("div.wato_view div.item")):
+        for row in item.select("div.apply_list tbody tr"):
+            cols = row.find_all("td")
+            if len(cols) < 4:
+                print(f"[스킵] 참여자 row 칼럼 수 부족 → slug={slug}, post_id={post_id}")
+                continue
 
-    # 1차 anchor: 마감 시각
-    apply_records, latest_apply_dt_from_deadline_anchor = _collect_apply_rows(soup, deadline_dt)
+            nickname = cols[0].get_text(strip=True)
+            try:
+                bet = int(cols[1].get_text(strip=True).replace(",", ""))
+                payout = int(cols[2].get_text(strip=True).replace(",", ""))
+            except ValueError:
+                print(f"[스킵] 숫자 파싱 실패 → slug={slug}, post_id={post_id}, nickname={nickname}")
+                continue
 
-    # 쓰레기 마감(현재+1일 이후) 여부 판단
-    is_garbage_deadline = deadline_dt > tomorrow
+            records.append({
+                "post_id": int(post_id),
+                "slug": slug,
+                "bet_side": bet_side,
+                "nickname": nickname,
+                "bet_amount": bet,
+                "payout_amount": payout,
+                "participated_at": participated_at
+            })
 
-    # 쓰레기면 2차 anchor: 현재 시각을 기준으로 재계산하여 최신 참여시각 산출
-    if is_garbage_deadline:
-        apply_records_using_now, latest_apply_dt_from_now_anchor = _collect_apply_rows(soup, now)
-        # 참여자 없으면 마감 그대로 사용(어쩔 수 없음)
-        if latest_apply_dt_from_now_anchor:
-            effective_deadline = latest_apply_dt_from_now_anchor
-            # apply_records는 실제 저장에 참여시간이 필요치 않으므로 기존 레코드 그대로 사용
-        else:
-            effective_deadline = deadline_dt
-    else:
-        effective_deadline = deadline_dt
-
-    # 최종 저장 레코드 구성
-    records_final = []
-    if not apply_records:
+    if not records:
         print(f"[스킵] 참여자 없음 → slug={slug}, post_id={post_id}")
-        return records_final
 
-    for r in apply_records:
-        records_final.append({
-            "post_id": int(post_id),
-            "slug": slug,
-            "bet_side": r["bet_side"],
-            "nickname": r["nickname"],
-            "bet_amount": r["bet_amount"],
-            "payout_amount": r["payout_amount"],
-            "deadline_at": effective_deadline,  # ✅ 계산된(또는 원래) 마감시각
-        })
-
-    return records_final
+    return records
 
 
 def get_or_create_user(cur, nickname, cache=None):
@@ -206,6 +107,7 @@ def get_or_create_user(cur, nickname, cache=None):
 
     if cache is not None:
         cache[nickname] = user_id
+
     return user_id
 
 
@@ -219,11 +121,11 @@ def get_or_create_board(cur, slug, cache=None):
 
     if cache is not None:
         cache[slug] = board_id
+
     return board_id
 
 
 def update_daily_stats(cur):
-    # deadline_date 기준 05:00 컷오프
     cur.execute("""
         WITH per_post_all AS (
             SELECT
@@ -282,7 +184,6 @@ def update_daily_stats(cur):
 
 
 def update_monthly_stats(cur):
-    # deadline_date 기준 월 집계 (05:00 컷오프 보정 포함)
     cur.execute("""
         WITH per_post_all AS (
             SELECT
@@ -340,6 +241,7 @@ def update_monthly_stats(cur):
     """)
 
 
+# app/crawler/service.py → insert_records 교체
 def insert_records(posts_records):
     conn = get_connection()
     cur = conn.cursor()
@@ -371,7 +273,7 @@ def insert_records(posts_records):
                 VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
                 ON CONFLICT (user_id, board_id, post_id, bet_side) DO NOTHING;
             """, (
-                r["post_id"], r["deadline_at"], user_id, board_id,
+                r["post_id"], r["participated_at"], user_id, board_id,
                 r["bet_side"], r["bet_amount"], r["payout_amount"]
             ))
 
