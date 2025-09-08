@@ -11,7 +11,7 @@ def main():
 
     for slug in _get_slugs():
         print(f"[INFO] 게시판 시작: {slug}")
-        for page in range(1, 43):
+        for page in range(1, 9):
             print(f"크롤링 중: 게시판 페이지 {page}")
             post_ids = parse_list_page(page, slug)
 
