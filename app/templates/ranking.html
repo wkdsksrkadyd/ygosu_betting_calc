@@ -4,8 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="light dark">
-    <title>전체와토 배팅 검색 • 세트카 승률</title>
-    <meta name="description" content="세트카 개인 배팅 검색 페이지">
+    <title>월간/일간 랭킹 • 전체 승률</title>
+    <meta name="description" content="전체 월간 및 일간 랭킹 페이지">
 
     <!-- Pico.css -->
     <link
@@ -24,20 +24,20 @@
         <nav>
           <ul>
             <li>
-              <a href="{{ url_for('routes.ranking', back=back) if back else url_for('routes.ranking') }}">
-                전체월간/일간 랭킹
+              <a href="{{ url_for('routes.ranking', back=back) if back else url_for('routes.ranking') }}" aria-current="page">
+                월간/일간 랭킹
               </a>
             </li>
             <li>
-              <a href="{{ url_for('routes.index', back=back) if back else url_for('routes.index') }}" aria-current="page">
-                전체개인배팅 검색
+              <a href="{{ url_for('routes.index', back=back) if back else url_for('routes.index') }}">
+                개인배팅 검색
               </a>
             </li>
             {% if back %}
             <li>
               <a href="{{ url_for('routes.board_page', folder=back, page=back) }}">돌아가기</a>
             </li>
-             {% endif %}
+            {% endif %}
 
           </ul>
           <ul>
@@ -51,49 +51,36 @@
     <!-- Main -->
     <main class="container">
       <section class="pico">
-        <h1>전체와토 개인배팅 기록 검색</h1>
+        <h1>전체 배팅액 월간/일간 랭킹</h1>
         <p>현재는 세트카 + 화오게 + 스방</p>
-        <p>🔊 양방은 순수익만 적용 (총 배팅액, 승률 적용x) / 닉변시 통계따로</p>
+        <p>🔊 당일기록 오전05:00 업데이트(00:00~05:00 경기 전일 기준합산)</p>
 
-        <form id="searchForm">
-          <div class="grid">
-            <select name="select" aria-label="검색 유형" required>
-              <option selected>월간 배팅</option>
-              <option>일간 배팅</option>
-            </select>
-          </div>
+        <div class="grid">
+          <select name="select" id="rankType" aria-label="검색 유형" required>
+            <option selected>월간 배팅</option>
+            <option>일간 배팅</option>
+          </select>
+        </div>
 
-          <input
-            type="text"
-            id="nickname"
-            name="nickname"
-            placeholder="닉네임 공백까지 정확해야함"
-            aria-label="닉네임"
-            required
-          >
-
+        <form id="rankingForm">
           <fieldset>
             <div class="grid">
               <label for="startDate">
-                시작 날짜
+                랭킹 날짜
                 <input type="month" id="startDate" name="startDate">
-              </label>
-              <label for="endDate">
-                종료 날짜
-                <input type="month" id="endDate" name="endDate">
               </label>
             </div>
           </fieldset>
 
-            <button type="submit" id="searchBtn" class="primary">검색</button>
+          <button type="submit" id="searchBtn" class="primary">검색</button>
         </form>
 
-        <div id="results"></div>
+        <div id="rankingResults"></div>
       </section>
     </main>
 
     <!-- Scripts -->
     <script src="{{ url_for('static', filename='js/minimal-theme-switcher.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/ranking.js') }}"></script>
   </body>
 </html>

@@ -4,8 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="light dark">
-    <title>전체와토 배팅 검색 • 세트카 승률</title>
-    <meta name="description" content="세트카 개인 배팅 검색 페이지">
+    <title>개인 배팅 검색 • 스방게 승률</title>
+    <meta name="description" content="스방게 개인 배팅 검색 페이지">
 
     <!-- Pico.css -->
     <link
@@ -20,39 +20,30 @@
     <!-- Header -->
     <header class="container">
       <div class="pico">
-        {% set back = request.args.get('back') %}
-        <nav>
-          <ul>
-            <li>
-              <a href="{{ url_for('routes.ranking', back=back) if back else url_for('routes.ranking') }}">
-                전체월간/일간 랭킹
-              </a>
-            </li>
-            <li>
-              <a href="{{ url_for('routes.index', back=back) if back else url_for('routes.index') }}" aria-current="page">
-                전체개인배팅 검색
-              </a>
-            </li>
-            {% if back %}
-            <li>
-              <a href="{{ url_for('routes.board_page', folder=back, page=back) }}">돌아가기</a>
-            </li>
-             {% endif %}
 
-          </ul>
-          <ul>
-            <li><a href="#" data-theme-switcher="light">Light</a></li>
-            <li><a href="#" data-theme-switcher="dark">Dark</a></li>
-          </ul>
-        </nav>
+      <nav>
+        <ul>
+          <!-- 폴더별 랭킹 페이지로 이동 -->
+          <li><a href="{{ url_for('routes.board_page', folder=folder_name, page='ranking') }}">월간/일간 랭킹</a></li>
+          <!-- 같은 폴더의 개인검색 페이지로 이동 -->
+          <li><a href="{{ url_for('routes.board_page', folder=folder_name, page=folder_name) }}" aria-current="page">개인배팅 검색</a></li>
+          <li><a href="{{ url_for('routes.index', back=folder_name) }}" aria-current="page">전체 개인배팅 검색</a></li>
+        </ul>
+        <ul>
+          <li><a href="#" data-theme-switcher="light">Light</a></li>
+          <li><a href="#" data-theme-switcher="dark">Dark</a></li>
+        </ul>
+      </nav>
       </div>
     </header>
+      
+
+    <!-- ./ Header -->
 
     <!-- Main -->
     <main class="container">
       <section class="pico">
-        <h1>전체와토 개인배팅 기록 검색</h1>
-        <p>현재는 세트카 + 화오게 + 스방</p>
+        <h1>스방게 개인배팅 기록 검색</h1>
         <p>🔊 양방은 순수익만 적용 (총 배팅액, 승률 적용x) / 닉변시 통계따로</p>
 
         <form id="searchForm">
@@ -85,7 +76,7 @@
             </div>
           </fieldset>
 
-            <button type="submit" id="searchBtn" class="primary">검색</button>
+          <button type="submit" id="searchBtn" class="primary">검색</button>
         </form>
 
         <div id="results"></div>
@@ -93,6 +84,7 @@
     </main>
 
     <!-- Scripts -->
+    <script>window.BOARD_SLUG = "{{ board_slug }}";</script>
     <script src="{{ url_for('static', filename='js/minimal-theme-switcher.js') }}"></script>
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
   </body>

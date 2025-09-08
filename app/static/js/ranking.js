@@ -1,3 +1,4 @@
+// static/js/ranking.js
 document.addEventListener("DOMContentLoaded", () => {
   const startDateInput = document.getElementById("startDate");
   const select = document.querySelector("select[name=select]");
@@ -39,11 +40,17 @@ document.addEventListener("DOMContentLoaded", () => {
   async function fetchRanking(type) {
     resultsDiv.innerHTML = "<p>불러오는 중...</p>";
 
+    // slug 파라미터 추가 (폴더별 페이지에서 window.BOARD_SLUG 주입됨)
+    const params = new URLSearchParams();
+    if (window.BOARD_SLUG) params.set("boardSlug", window.BOARD_SLUG);
+
     let url = "";
     if (type === "월간 배팅") {
-      url = `/api/monthly_ranking?statMonth=${startDateInput.value}`;
+      params.set("statMonth", startDateInput.value);
+      url = `/api/monthly_ranking?${params.toString()}`;
     } else {
-      url = `/api/daily_ranking?statDate=${startDateInput.value}`;
+      params.set("statDate", startDateInput.value);
+      url = `/api/daily_ranking?${params.toString()}`;
     }
 
     try {
@@ -59,7 +66,7 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      // ✅ 테이블 렌더링
+      // ✅ 테이블 렌더링 (기존 컬럼 그대로)
       let html = "<table><thead><tr><th>순위</th><th>닉네임</th><th>총 배팅액</th><th>베팅수</th></tr></thead><tbody>";
       data.forEach((row, idx) => {
         html += `<tr>

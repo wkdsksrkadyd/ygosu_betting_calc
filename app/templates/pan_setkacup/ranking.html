@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <title>월간/일간 랭킹 • 세트카</title>
+    <meta name="description" content="세트카 월간 및 일간 랭킹 페이지">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2.1.1/css/pico.conditional.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+  </head>
+  <body>
+    <header class="container">
+      <div class="pico">
+        <nav>
+          <ul>
+            <li><a href="{{ url_for('routes.board_page', folder=folder_name, page='ranking') }}" aria-current="page">월간/일간 랭킹</a></li>
+            <li><a href="{{ url_for('routes.board_page', folder=folder_name, page=folder_name) }}">개인배팅 검색</a></li>
+            <li><a href="{{ url_for('routes.ranking', back=folder_name) }}">전체 월간/일간 랭킹</a></li>
+          </ul>
+          <ul>
+            <li><a href="#" data-theme-switcher="light">Light</a></li>
+            <li><a href="#" data-theme-switcher="dark">Dark</a></li>
+          </ul>
+        </nav>
+      </div>
+    </header>
+
+    <main class="container">
+      <section class="pico">
+        <h1>세트카 배팅액 월간/일간 랭킹</h1>
+        <p>🔊 당일기록 오전05:00 업데이트(00:00~05:00 경기 전일 기준합산)</p>
+
+        <div class="grid">
+          <select id="rankType" name="select" aria-label="검색 유형" required>
+            <option selected>월간 배팅</option>
+            <option>일간 배팅</option>
+          </select>
+        </div>
+
+        <form id="rankingForm">
+          <fieldset>
+            <div class="grid">
+              <label for="startDate">
+                랭킹 날짜
+                <input type="month" id="startDate" name="startDate">
+              </label>
+            </div>
+          </fieldset>
+          <button type="submit" id="searchBtn" class="primary">검색</button>
+        </form>
+
+        <div id="rankingResults"></div>
+      </section>
+    </main>
+
+    <script>window.BOARD_SLUG = "{{ board_slug }}";</script>
+    <script src="{{ url_for('static', filename='js/minimal-theme-switcher.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/ranking.js') }}"></script>
+  </body>
+</html>

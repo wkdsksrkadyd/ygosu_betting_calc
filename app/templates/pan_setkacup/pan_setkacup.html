@@ -4,8 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="light dark">
-    <title>월간/일간 랭킹 • 세트카 승률</title>
-    <meta name="description" content="세트카 월간 및 일간 랭킹 페이지">
+    <title>개인 배팅 검색 • 세트카 승률</title>
+    <meta name="description" content="세트카 개인 배팅 검색 페이지">
 
     <!-- Pico.css -->
     <link
@@ -19,28 +19,34 @@
   <body>
     <!-- Header -->
     <header class="container">
-    <div class="pico">
+      <div class="pico">
 
       <nav>
         <ul>
-          <li><a href="{{ url_for('routes.rankings') }}">월간/일간 랭킹</a></li>
-          <li><a href="{{ url_for('routes.index') }}" aria-current="page">개인배팅 검색</a></li>
+          <!-- 폴더별 랭킹 페이지로 이동 -->
+          <li><a href="{{ url_for('routes.board_page', folder=folder_name, page='ranking') }}">월간/일간 랭킹</a></li>
+          <!-- 같은 폴더의 개인검색 페이지로 이동 -->
+          <li><a href="{{ url_for('routes.board_page', folder=folder_name, page=folder_name) }}" aria-current="page">개인배팅 검색</a></li>
+          <li><a href="{{ url_for('routes.index', back=folder_name) }}" aria-current="page">전체 개인배팅 검색</a></li>
         </ul>
         <ul>
           <li><a href="#" data-theme-switcher="light">Light</a></li>
           <li><a href="#" data-theme-switcher="dark">Dark</a></li>
         </ul>
       </nav>
-    </div>
+      </div>
     </header>
+      
+
     <!-- ./ Header -->
 
     <!-- Main -->
     <main class="container">
       <section class="pico">
-        <h1>세트카 배팅액 월간/일간 랭킹</h1>
-        <p>🔊 당일기록 오전05:00 업데이트(00:00~05:00 경기 전일 기준합산)</p>
+        <h1>세트카 개인배팅 기록 검색</h1>
+        <p>🔊 양방은 순수익만 적용 (총 배팅액, 승률 적용x) / 닉변시 통계따로</p>
 
+        <form id="searchForm">
           <div class="grid">
             <select name="select" aria-label="검색 유형" required>
               <option selected>월간 배팅</option>
@@ -48,14 +54,24 @@
             </select>
           </div>
 
-        <form id="searchForm">
-
+          <input
+            type="text"
+            id="nickname"
+            name="nickname"
+            placeholder="닉네임 공백까지 정확해야함"
+            aria-label="닉네임"
+            required
+          >
 
           <fieldset>
             <div class="grid">
               <label for="startDate">
-                랭킹 날짜
+                시작 날짜
                 <input type="month" id="startDate" name="startDate">
+              </label>
+              <label for="endDate">
+                종료 날짜
+                <input type="month" id="endDate" name="endDate">
               </label>
             </div>
           </fieldset>
@@ -63,12 +79,13 @@
           <button type="submit" id="searchBtn" class="primary">검색</button>
         </form>
 
-        <div id="rankingResults"></div>
+        <div id="results"></div>
       </section>
     </main>
 
     <!-- Scripts -->
+    <script>window.BOARD_SLUG = "{{ board_slug }}";</script>
     <script src="{{ url_for('static', filename='js/minimal-theme-switcher.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/ranking.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
   </body>
 </html>

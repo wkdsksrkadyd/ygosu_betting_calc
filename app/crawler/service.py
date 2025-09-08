@@ -3,15 +3,9 @@ from bs4 import BeautifulSoup
 import re
 from datetime import datetime
 from app.database import get_connection
-import os
 
-SLUG = os.getenv("SLUG", "pan_setkacup")
-BASE_LIST_URL = f"https://ygosu.com/board/{SLUG}/?s_wato=Y&page={{}}"
-BASE_POST_URL = f"https://ygosu.com/board/{SLUG}/{{}}"
-
-
-def parse_list_page(page):
-    url = BASE_LIST_URL.format(page)
+def parse_list_page(page: int, slug: str):
+    url = f"https://ygosu.com/board/{slug}/?s_wato=Y&page={page}"
     res = requests.get(url, timeout=10)
     res.raise_for_status()
     soup = BeautifulSoup(res.text, "html.parser")
@@ -32,13 +26,13 @@ def parse_list_page(page):
     return posts
 
 
-def parse_post(post_id, slug=SLUG):
-    url = BASE_POST_URL.format(post_id)
+def parse_post(post_id: str, slug: str):
+    url = f"https://ygosu.com/board/{slug}/{post_id}"
     try:
         res = requests.get(url, timeout=10)
         res.raise_for_status()
     except Exception as e:
-        print(f"[에러] 게시물 요청 실패 → post_id={post_id}, error={e}")
+        print(f"[에러] 게시물 요청 실패 → slug={slug}, post_id={post_id}, error={e}")
         return []
 
     soup = BeautifulSoup(res.text, "html.parser")
@@ -46,11 +40,11 @@ def parse_post(post_id, slug=SLUG):
     # ✅ 마감 시각 및 종료 상태 체크
     bet_info_div = soup.select_one("div.ub_bet_start")
     if not bet_info_div:
-        print(f"[스킵] 마감 정보 없음 → post_id={post_id}")
+        print(f"[스킵] 마감 정보 없음 → slug={slug}, post_id={post_id}")
         return []
 
     if "종료됨" not in bet_info_div.get_text():
-        print(f"[스킵] 진행 중인 베팅 → post_id={post_id}")
+        print(f"[스킵] 진행 중인 베팅 → slug={slug}, post_id={post_id}")
         return []
 
     # ✅ 마감 시각 추출
@@ -64,10 +58,10 @@ def parse_post(post_id, slug=SLUG):
         try:
             participated_at = datetime(year, month, day, hour, minute, second)
         except ValueError as e:
-            print(f"[오류] 마감 시각 파싱 실패 → post_id={post_id}, error={e}")
+            print(f"[오류] 마감 시각 파싱 실패 → slug={slug}, post_id={post_id}, error={e}")
             return []
     else:
-        print(f"[오류] 마감 시각 형식 불일치 → post_id={post_id}")
+        print(f"[오류] 마감 시각 형식 불일치 → slug={slug}, post_id={post_id}")
         return []
 
     # ✅ 참여자 정보 파싱
@@ -76,7 +70,7 @@ def parse_post(post_id, slug=SLUG):
         for row in item.select("div.apply_list tbody tr"):
             cols = row.find_all("td")
             if len(cols) < 4:
-                print(f"[스킵] 참여자 row 칼럼 수 부족 → post_id={post_id}")
+                print(f"[스킵] 참여자 row 칼럼 수 부족 → slug={slug}, post_id={post_id}")
                 continue
 
             nickname = cols[0].get_text(strip=True)
@@ -84,7 +78,7 @@ def parse_post(post_id, slug=SLUG):
                 bet = int(cols[1].get_text(strip=True).replace(",", ""))
                 payout = int(cols[2].get_text(strip=True).replace(",", ""))
             except ValueError:
-                print(f"[스킵] 숫자 파싱 실패 → post_id={post_id}, nickname={nickname}")
+                print(f"[스킵] 숫자 파싱 실패 → slug={slug}, post_id={post_id}, nickname={nickname}")
                 continue
 
             records.append({
@@ -98,10 +92,9 @@ def parse_post(post_id, slug=SLUG):
             })
 
     if not records:
-        print(f"[스킵] 참여자 없음 → post_id={post_id}")
+        print(f"[스킵] 참여자 없음 → slug={slug}, post_id={post_id}")
 
     return records
-
 
 
 def get_or_create_user(cur, nickname, cache=None):
@@ -248,6 +241,7 @@ def update_monthly_stats(cur):
     """)
 
 
+# app/crawler/service.py → insert_records 교체
 def insert_records(posts_records):
     conn = get_connection()
     cur = conn.cursor()
@@ -256,7 +250,16 @@ def insert_records(posts_records):
     board_cache = {}
 
     for post_id, records in posts_records.items():
-        cur.execute("SELECT 1 FROM betting_stats WHERE post_id = %s LIMIT 1;", (post_id,))
+        if not records:
+            continue
+
+        # 게시판별 중복 체크: (board_id, post_id)
+        first_slug = records[0]["slug"]
+        board_id_for_check = get_or_create_board(cur, first_slug, board_cache)
+        cur.execute(
+            "SELECT 1 FROM betting_stats WHERE board_id = %s AND post_id = %s LIMIT 1;",
+            (board_id_for_check, post_id),
+        )
         if cur.fetchone():
             continue
 
@@ -268,7 +271,7 @@ def insert_records(posts_records):
                 INSERT INTO betting_stats 
                 (post_id, deadline_date, user_id, board_id, bet_side, bet_amount, payout_amount, created_at)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
-                ON CONFLICT (user_id, post_id, bet_side) DO NOTHING;
+                ON CONFLICT (user_id, board_id, post_id, bet_side) DO NOTHING;
             """, (
                 r["post_id"], r["participated_at"], user_id, board_id,
                 r["bet_side"], r["bet_amount"], r["payout_amount"]
