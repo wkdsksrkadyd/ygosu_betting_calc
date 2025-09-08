@@ -25,12 +25,12 @@
           <ul>
             <li>
               <a href="{{ url_for('routes.ranking', back=back) if back else url_for('routes.ranking') }}" aria-current="page">
-                월간/일간 랭킹
+                전체월간/일간랭킹
               </a>
             </li>
             <li>
               <a href="{{ url_for('routes.index', back=back) if back else url_for('routes.index') }}">
-                개인배팅 검색
+                전체개인배팅 검색
               </a>
             </li>
             {% if back %}
