@@ -32,7 +32,7 @@ FOLDER_TO_BOARD_SLUG = {
     "starbbs": "starbbs",
 }
 
-@bp.route("/<folder>/<page>.html")
+@bp.route("/<folder>/<page>")
 def board_page(folder, page):
     board_slug = FOLDER_TO_BOARD_SLUG.get(folder)
     if not board_slug:

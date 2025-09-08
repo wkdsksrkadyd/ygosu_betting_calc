@@ -4,8 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="light dark">
-    <title>개인 배팅 검색 • 화오게 승률</title>
-    <meta name="description" content="화오게 개인 배팅 검색 페이지">
+    <title>개인 배팅 검색 • 스방게 승률</title>
+    <meta name="description" content="스방게 개인 배팅 검색 페이지">
 
     <!-- Pico.css -->
     <link
@@ -27,7 +27,7 @@
           <li><a href="{{ url_for('routes.board_page', folder=folder_name, page='ranking') }}">월간/일간 랭킹</a></li>
           <!-- 같은 폴더의 개인검색 페이지로 이동 -->
           <li><a href="{{ url_for('routes.board_page', folder=folder_name, page=folder_name) }}" aria-current="page">개인배팅 검색</a></li>
-          <li><a href="{{ url_for('routes.index', back=folder_name) }}" aria-current="page">전체 개인배팅 검색</a></li>
+          <li><a href="{{ url_for('routes.index', back=folder_name) }}" aria-current="page">전체개인배팅 검색</a></li>
         </ul>
         <ul>
           <li><a href="#" data-theme-switcher="light">Light</a></li>
@@ -43,7 +43,7 @@
     <!-- Main -->
     <main class="container">
       <section class="pico">
-        <h1>화오게 개인배팅 기록 검색</h1>
+        <h1>스방게 개인배팅 기록 검색</h1>
         <p>🔊 양방은 순수익만 적용 (총 배팅액, 승률 적용x) / 닉변시 통계따로</p>
 
         <form id="searchForm">
