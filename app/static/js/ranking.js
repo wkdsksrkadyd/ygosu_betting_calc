@@ -37,6 +37,14 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  // Utils
+  const nfmt = (v) => Number(v || 0).toLocaleString();
+  const pfmt = (v) => {
+    const num = Number(v);
+    if (Number.isFinite(num)) return `${num.toFixed(2)}%`;
+    return "-";
+  };
+
   async function fetchRanking(type) {
     resultsDiv.innerHTML = "<p>불러오는 중...</p>";
 
@@ -67,13 +75,16 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       // ✅ 테이블 렌더링 (기존 컬럼 그대로)
-      let html = "<table><thead><tr><th>순위</th><th>닉네임</th><th>총 배팅액</th><th>베팅수</th></tr></thead><tbody>";
+      let html = "<table><thead><tr><th>순위</th><th>닉네임</th><th>총 배팅액</th><th>순수익</th><th>베팅수</th><th>승리</th><th>승률(%)</th></tr></thead><tbody>";
       data.forEach((row, idx) => {
         html += `<tr>
           <td>${idx + 1}</td>
           <td>${row.nickname}</td>
-          <td>${Number(row.total_amount).toLocaleString()}</td>
-          <td>${row.total_bets}</td>
+          <td>${nfmt(row.total_amount)}</td>
+          <td>${nfmt(row.total_profit)}</td>
+          <td>${nfmt(row.total_bets)}</td>
+          <td>${nfmt(row.wins)}</td>
+          <td>${pfmt(row.win_rate)}</td>
         </tr>`;
       });
       html += "</tbody></table>";
